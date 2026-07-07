@@ -79,7 +79,7 @@ public:
                        : NextParents.begin()->get<clang::Stmt>();
     }
 
-    if (ParentStmt && clang::isa<clang::CompoundStmt>(ParentStmt)) {
+    if (clang::isa_and_nonnull<clang::CompoundStmt>(ParentStmt)) {
       m_diag.Report(Loc, m_warnIgnoredResultID) << Callee->getDeclName();
     }
 
