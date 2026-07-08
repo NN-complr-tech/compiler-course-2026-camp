@@ -151,17 +151,17 @@
 
 # BEGIN COMPILER COURSE
 # CI
-.github/** @aobolensk @Kuznetsov-Artyom
+.github/** @aobolensk
 
 # Clang
-/clang/compiler-course/**  @aobolensk @Kuznetsov-Artyom
-/clang/test/compiler-course/**  @aobolensk @Kuznetsov-Artyom
+/clang/compiler-course/**  @aobolensk
+/clang/test/compiler-course/**  @aobolensk
 
 # LLVM
-/llvm/compiler-course/**  @aobolensk @Kuznetsov-Artyom
-/llvm/test/compiler-course/**  @aobolensk @Kuznetsov-Artyom
+/llvm/compiler-course/**  @aobolensk
+/llvm/test/compiler-course/**  @aobolensk
 
 # MLIR
-/mlir/compiler-course/**  @aobolensk @Kuznetsov-Artyom
-/mlir/test/compiler-course/**  @aobolensk @Kuznetsov-Artyom
+/mlir/compiler-course/**  @aobolensk
+/mlir/test/compiler-course/**  @aobolensk
 # END COMPILER COURSE
