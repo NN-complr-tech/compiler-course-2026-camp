@@ -1,37 +1,36 @@
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/AST/ASTTypeTraits.h"
+#include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/Stmt.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/ASTTypeTraits.h"
-#include "clang/AST/ParentMapContext.h"
-#include "clang/AST/Stmt.h"
 
 namespace {
 
 class NoDiscardVisitor final
     : public clang::RecursiveASTVisitor<NoDiscardVisitor> {
 public:
-  explicit NoDiscardVisitor(clang::ASTContext &context)
-      : m_context(context), m_diag(context.getDiagnostics()) {
+  explicit NoDiscardVisitor(clang::ASTContext &ASTCtx)
+      : Context(ASTCtx), Diags(ASTCtx.getDiagnostics()) {
 
-    m_warnNoDiscardID =
-        m_diag.getCustomDiagID(clang::DiagnosticsEngine::Warning,
-                               "function %0 returns a value and should be "
-                               "marked with [[nodiscard]] attribute");
+    WarnNoDiscardID = Diags.getCustomDiagID(
+        clang::DiagnosticsEngine::Warning,
+        "function %0 returns a value and should be marked with "
+        "[[nodiscard]] attribute");
 
-    m_warnIgnoredResultID = m_diag.getCustomDiagID(
+    WarnIgnoredResultID = Diags.getCustomDiagID(
         clang::DiagnosticsEngine::Warning, "result of function %0 is ignored");
   }
 
   bool VisitFunctionDecl(clang::FunctionDecl *FD) {
     clang::SourceLocation Loc = FD->getLocation();
 
-    if (m_context.getSourceManager().isInSystemHeader(Loc))
+    if (Context.getSourceManager().isInSystemHeader(Loc))
       return true;
 
     if (FD != FD->getCanonicalDecl())
@@ -47,7 +46,7 @@ public:
     clang::FixItHint FixIt =
         clang::FixItHint::CreateInsertion(BeginLoc, "[[nodiscard]] ");
 
-    m_diag.Report(Loc, m_warnNoDiscardID) << FD->getDeclName() << FixIt;
+    Diags.Report(Loc, WarnNoDiscardID) << FD->getDeclName() << FixIt;
 
     return true;
   }
@@ -64,33 +63,36 @@ public:
 
     clang::SourceLocation Loc = CE->getExprLoc();
 
-    auto Parents = m_context.getParents(*CE);
+    auto Parents = Context.getParents(*CE);
     const clang::Stmt *ParentStmt = nullptr;
     if (!Parents.empty()) {
       ParentStmt = Parents.begin()->get<clang::Stmt>();
     }
 
-    while (ParentStmt && (clang::isa<clang::ExprWithCleanups>(ParentStmt) ||
-                          clang::isa<clang::ParenExpr>(ParentStmt) ||
-                          clang::isa<clang::ImplicitCastExpr>(ParentStmt))) {
-      auto NextParents = m_context.getParents(*ParentStmt);
+    while (ParentStmt &&
+           (clang::isa<clang::ExprWithCleanups>(ParentStmt) ||
+            clang::isa<clang::ParenExpr>(ParentStmt) ||
+            clang::isa<clang::ImplicitCastExpr>(ParentStmt) ||
+            clang::isa<clang::CXXBindTemporaryExpr>(ParentStmt) ||
+            clang::isa<clang::MaterializeTemporaryExpr>(ParentStmt))) {
+      auto NextParents = Context.getParents(*ParentStmt);
       ParentStmt = NextParents.empty()
                        ? nullptr
                        : NextParents.begin()->get<clang::Stmt>();
     }
 
     if (clang::isa_and_nonnull<clang::CompoundStmt>(ParentStmt)) {
-      m_diag.Report(Loc, m_warnIgnoredResultID) << Callee->getDeclName();
+      Diags.Report(Loc, WarnIgnoredResultID) << Callee->getDeclName();
     }
 
     return true;
   }
 
 private:
-  clang::ASTContext &m_context;
-  clang::DiagnosticsEngine &m_diag;
-  unsigned m_warnNoDiscardID;
-  unsigned m_warnIgnoredResultID;
+  clang::ASTContext &Context;
+  clang::DiagnosticsEngine &Diags;
+  unsigned WarnNoDiscardID;
+  unsigned WarnIgnoredResultID;
 
   bool shouldBeNoDiscard(const clang::FunctionDecl *FD) {
     if (!FD)
@@ -126,14 +128,14 @@ private:
 
 class NoDiscardConsumer final : public clang::ASTConsumer {
 public:
-  explicit NoDiscardConsumer(clang::ASTContext &context) : m_visitor(context) {}
+  explicit NoDiscardConsumer(clang::ASTContext &ASTCtx) : Visitor(ASTCtx) {}
 
-  void HandleTranslationUnit(clang::ASTContext &context) override {
-    m_visitor.TraverseDecl(context.getTranslationUnitDecl());
+  void HandleTranslationUnit(clang::ASTContext &ASTCtx) override {
+    Visitor.TraverseDecl(ASTCtx.getTranslationUnitDecl());
   }
 
 private:
-  NoDiscardVisitor m_visitor;
+  NoDiscardVisitor Visitor;
 };
 
 class NoDiscardAction final : public clang::PluginASTAction {
@@ -144,7 +146,7 @@ public:
   }
 
   bool ParseArgs(const clang::CompilerInstance &CI,
-                 const std::vector<std::string> &args) override {
+                 const std::vector<std::string> &Args) override {
     return true;
   }
 };
