@@ -1,16 +1,25 @@
-get_filename_component(CURRENT_DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-set(TARGET_NAME "${CURRENT_DIR_NAME}_ClangAST")
+cmake_minimum_required(VERSION 3.13)
 
-file(GLOB_RECURSE SOURCES *.cpp *.h *.hpp)
-add_llvm_library(${TARGET_NAME} MODULE ${SOURCES} PLUGIN_TOOL clang)
+add_library(example_ClangAST MODULE
+    example.cpp
+)
 
-if(WIN32 OR CYGWIN)
-    set(LLVM_LINK_COMPONENTS Support)
-    clang_target_link_libraries(${TARGET_NAME} PRIVATE
-        clangAST
-        clangBasic
-        clangFrontend
-    )
-endif()
+target_include_directories(example_ClangAST PRIVATE
+    /tmp/llvm-project/clang/include
+    /tmp/llvm-project/llvm/include
+    /usr/include
+)
 
-set(CLANG_TEST_DEPS "${TARGET_NAME}" ${CLANG_TEST_DEPS} PARENT_SCOPE)
+target_link_libraries(example_ClangAST PRIVATE
+    clangAST
+    clangBasic
+    clangFrontend
+    LLVMSupport
+)
+
+set_target_properties(example_ClangAST PROPERTIES
+    CXX_STANDARD 17
+    POSITION_INDEPENDENT_CODE ON
+    PREFIX ""
+    SUFFIX ".so"
+)
