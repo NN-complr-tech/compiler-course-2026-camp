@@ -32,23 +32,52 @@ public:
 //__HELPER FUNCTION___
 bool needsNoDiscard(const clang::FunctionDecl *function) {
 
-    // already has nondisc
+    // already has [[nodiscard]]
     if (function->hasAttr<clang::WarnUnusedResultAttr>())
         return false;
+
     // returns void
     if (function->getReturnType()->isVoidType())
         return false;
-    // dont need nodisc in constructors/destructors
+
+    // constructors / destructors
     if (clang::isa<clang::CXXConstructorDecl>(function))
         return false;
     if (clang::isa<clang::CXXDestructorDecl>(function))
         return false;
-    // same for conversion operators like operator int()
+
+    // conversion operators: operator int(), operator bool(), ...
     if (clang::isa<clang::CXXConversionDecl>(function))
         return false;
-    // like >> << etc
-    if (function->isOverloadedOperator())
-        return false;
+
+    // skip only operators that almost never need [[nodiscard]]
+    if (function->isOverloadedOperator()) {
+        switch (function->getOverloadedOperator()) {
+
+        // assignment
+        case clang::OO_Equal:
+
+        // stream operators
+        case clang::OO_LessLess:
+        case clang::OO_GreaterGreater:
+
+        // compound assignment
+        case clang::OO_PlusEqual:
+        case clang::OO_MinusEqual:
+        case clang::OO_StarEqual:
+        case clang::OO_SlashEqual:
+        case clang::OO_PercentEqual:
+        case clang::OO_AmpEqual:
+        case clang::OO_PipeEqual:
+        case clang::OO_CaretEqual:
+        case clang::OO_LessLessEqual:
+        case clang::OO_GreaterGreaterEqual:
+            return false;
+
+        default:
+            break;
+        }
+    }
 
     return true;
 }
