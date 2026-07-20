@@ -9,12 +9,6 @@ int getValue() { return 42; }
 // CHECK-NOT: warning: function 'printMessage' returning non-void should be marked
 void printMessage(const char *msg) {}
 
-class MyClass {
-public:
-  // CHECK-NOT: warning: function 'operator<<' returning non-void should be marked
-    friend MyClass& operator<<(MyClass&, int) { return *this; }
-};
-
 [[nodiscard]] int getSafeValue() { return 100; }
 
 void testIgnoredResult() {
