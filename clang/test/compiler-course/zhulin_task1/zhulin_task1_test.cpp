@@ -12,7 +12,7 @@ void printMessage(const char *msg) {}
 class MyClass {
 public:
   // CHECK-NOT: warning: function 'operator<<' returning non-void should be marked
-  friend std::ostream &operator<<(std::ostream &os, const MyClass &) {
+  friend void &operator<<(std::ostream &os, const MyClass &) {
     return os;
   }
 };
