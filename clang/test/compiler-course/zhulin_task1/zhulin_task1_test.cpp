@@ -12,9 +12,7 @@ void printMessage(const char *msg) {}
 class MyClass {
 public:
   // CHECK-NOT: warning: function 'operator<<' returning non-void should be marked
-  friend void &operator<<(const MyClass &) {
-    return os;
-  }
+    friend MyClass& operator<<(MyClass&, int) { return *this; }
 };
 
 [[nodiscard]] int getSafeValue() { return 100; }
