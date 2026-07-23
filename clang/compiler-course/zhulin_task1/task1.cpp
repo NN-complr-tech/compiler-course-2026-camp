@@ -23,12 +23,12 @@ public:
         
         m_diagMissingAttr = m_diagEngine->getCustomDiagID(
             DiagnosticsEngine::Warning,
-            "function returning non-void should be marked '[[nodiscard]]'"
+            "function '%0' returning non-void should be marked '[[nodiscard]]'"
         );
         
         m_diagIgnoredResult = m_diagEngine->getCustomDiagID(
             DiagnosticsEngine::Warning,
-            "ignoring return value of function marked '[[nodiscard]]'"
+            "ignoring return value of function '%0' marked '[[nodiscard]]'"
         );
     }
     
