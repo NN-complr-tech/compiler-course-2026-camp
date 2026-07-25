@@ -50,7 +50,7 @@ public:
                 func->getLocation(),
                 m_diagMissingAttr
             );
-            diag << func->getDeclName();
+            diag << func->getNameAsString();
        
             SourceLocation startLoc = func->getBeginLoc();
             if (startLoc.isValid()) {
@@ -79,7 +79,7 @@ public:
                 m_diagEngine->Report(
                     call->getBeginLoc(),
                     m_diagIgnoredResult
-                ) << calledFunc->getDeclName();
+                ) << calledFunc->getNameAsString();
             }
         }
         
