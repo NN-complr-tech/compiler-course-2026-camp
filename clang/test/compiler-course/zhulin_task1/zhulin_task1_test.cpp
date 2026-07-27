@@ -68,4 +68,4 @@ int main()
     testVoidCast();
     return 0;
 }
-EOF
+
