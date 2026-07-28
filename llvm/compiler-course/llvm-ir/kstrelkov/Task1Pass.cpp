@@ -79,7 +79,7 @@ struct MinMaxDecompositionPass : llvm::PassInfoMixin<MinMaxDecompositionPass> {
     return llvm::PreservedAnalyses::all();
   }
 
-  static bool isRequired() { return true; }
+  //static bool isRequired() { return true; }
 };
 } // namespace
 
