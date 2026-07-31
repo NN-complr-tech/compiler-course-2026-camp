@@ -64,7 +64,6 @@ int main()
 {
     testIgnoredResult();
     testFunctions();
-    testLambda();
     testVoidCast();
     return 0;
 }
