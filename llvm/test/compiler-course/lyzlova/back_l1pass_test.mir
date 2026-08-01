@@ -1,0 +1,212 @@
+# RUN: llc -mtriple x86_64-unknown-linux-gnu --load=%llvmshlibdir/lyzlova_BACKEND%shlibext \
+# RUN: -run-pass=immediate-folding %s -o - | FileCheck %s
+
+---
+name: test_add_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: ADD32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 42
+    %2:gr32 = ADD32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_sub_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: SUB32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 10
+    %2:gr32 = SUB32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_and_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: AND32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 255
+    %2:gr32 = AND32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_or_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: OR32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 128
+    %2:gr32 = OR32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_xor_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: XOR32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri -1
+    %2:gr32 = XOR32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_no_fold_multiple_uses
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+  - { id: 3, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: MOV32ri 10
+    ; CHECK: ADD32rr
+    ; CHECK: SUB32rr
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 10
+    %2:gr32 = ADD32rr killed %0, %1, implicit-def dead $eflags
+    %3:gr32 = SUB32rr killed %2, killed %1, implicit-def dead $eflags
+    $eax = COPY %3
+    RET64 $eax
+
+---
+name: test_no_fold_sub_wrong_order
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: MOV32ri 100
+    ; CHECK: SUB32rr
+    %0:gr32 = MOV32ri 100
+    %1:gr32 = COPY $edi
+    %2:gr32 = SUB32rr %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_no_fold_not_mov_immediate
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: MOV32rr
+    ; CHECK: ADD32rr
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32rr %0
+    %2:gr32 = ADD32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_chain_folding
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+  - { id: 3, class: gr32 }
+  - { id: 4, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: ADD32ri
+    ; CHECK: AND32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 5
+    %2:gr32 = ADD32rr killed %0, killed %1, implicit-def dead $eflags
+    %3:gr32 = MOV32ri 15
+    %4:gr32 = AND32rr killed %2, killed %3, implicit-def dead $eflags
+    $eax = COPY %4
+    RET64 $eax
+
+---
+name: test_negative_constant
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: ADD32ri
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri -5
+    %2:gr32 = ADD32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
+
+---
+name: test_no_fold_unsupported_op
+alignment: 16
+tracksRegLiveness: true
+registers:
+  - { id: 0, class: gr32 }
+  - { id: 1, class: gr32 }
+  - { id: 2, class: gr32 }
+body: |
+  bb.0:
+    liveins: $edi
+    ; CHECK: MOV32ri 3
+    ; CHECK: IMUL32rr
+    %0:gr32 = COPY $edi
+    %1:gr32 = MOV32ri 3
+    %2:gr32 = IMUL32rr killed %0, killed %1, implicit-def dead $eflags
+    $eax = COPY %2
+    RET64 $eax
