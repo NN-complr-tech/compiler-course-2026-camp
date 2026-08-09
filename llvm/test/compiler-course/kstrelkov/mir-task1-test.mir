@@ -1,0 +1,212 @@
+# RUN: llc -mtriple=aarch64-unknown-linux-gnu --load=%llvmshlibdir/kstrelkov_BACKEND%shlibext \
+# RUN: -run-pass=aarch64-imm-folding %s -o - | FileCheck %s
+
+--- |
+  define void @test_add32() { ret void }
+  define void @test_sub32() { ret void }
+  define void @test_and32() { ret void }
+  define void @test_orr32() { ret void }
+  define void @test_eor32() { ret void }
+  define void @test_add64() { ret void }
+  define void @test_sub64() { ret void }
+  define void @test_and64() { ret void }
+  define void @test_orr64() { ret void }
+  define void @test_eor64() { ret void }
+  define void @test_commutative() { ret void }
+  define void @test_unsupported_imm_arith() { ret void }
+  define void @test_unsupported_imm_logical() { ret void }
+...
+---
+name:            test_add32
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 42, 0
+    %2:gpr32 = ADDWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_add32
+# CHECK: %2:gpr32 = ADDWri %0, 42, 0
+
+---
+name:            test_sub32
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 42, 0
+    %2:gpr32 = SUBWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_sub32
+# CHECK: %2:gpr32 = SUBWri %0, 42, 0
+
+---
+name:            test_and32
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 15, 0
+    %2:gpr32 = ANDWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_and32
+# CHECK: %2:gpr32 = ANDWri %0, 3
+
+---
+name:            test_orr32
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 15, 0
+    %2:gpr32 = ORRWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_orr32
+# CHECK: %2:gpr32 = ORRWri %0, 3
+
+---
+name:            test_eor32
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 15, 0
+    %2:gpr32 = EORWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_eor32
+# CHECK: %2:gpr32 = EORWri %0, 3
+
+---
+name:            test_add64
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $x0
+    %0:gpr64 = COPY $x0
+    %1:gpr64 = MOVZXi 100, 0
+    %2:gpr64 = ADDXrr %0, %1
+    $x0 = COPY %2
+    RET_ReallyLR implicit $x0
+...
+# CHECK-LABEL: name: test_add64
+# CHECK: %2:gpr64 = ADDXri %0, 100, 0
+
+---
+name:            test_sub64
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $x0
+    %0:gpr64 = COPY $x0
+    %1:gpr64 = MOVZXi 100, 0
+    %2:gpr64 = SUBXrr %0, %1
+    $x0 = COPY %2
+    RET_ReallyLR implicit $x0
+...
+# CHECK-LABEL: name: test_sub64
+# CHECK: %2:gpr64 = SUBXri %0, 100, 0
+
+---
+name:            test_and64
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $x0
+    %0:gpr64 = COPY $x0
+    %1:gpr64 = MOVZXi 255, 0
+    %2:gpr64 = ANDXrr %0, %1
+    $x0 = COPY %2
+    RET_ReallyLR implicit $x0
+...
+# CHECK-LABEL: name: test_and64
+# CHECK: %2:gpr64 = ANDXri %0, 4103
+
+---
+name:            test_orr64
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $x0
+    %0:gpr64 = COPY $x0
+    %1:gpr64 = MOVZXi 255, 0
+    %2:gpr64 = ORRXrr %0, %1
+    $x0 = COPY %2
+    RET_ReallyLR implicit $x0
+...
+# CHECK-LABEL: name: test_orr64
+# CHECK: %2:gpr64 = ORRXri %0, 4103
+
+---
+name:            test_eor64
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $x0
+    %0:gpr64 = COPY $x0
+    %1:gpr64 = MOVZXi 255, 0
+    %2:gpr64 = EORXrr %0, %1
+    $x0 = COPY %2
+    RET_ReallyLR implicit $x0
+...
+# CHECK-LABEL: name: test_eor64
+# CHECK: %2:gpr64 = EORXri %0, 4103
+
+---
+name:            test_commutative
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVZWi 42, 0
+    %2:gpr32 = ADDWrr %1, %0
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_commutative
+# CHECK: %2:gpr32 = ADDWri %0, 42, 0
+
+---
+name:            test_unsupported_imm_arith
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVi32imm 5000
+    %2:gpr32 = ADDWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_unsupported_imm_arith
+# CHECK: %2:gpr32 = ADDWrr %0, %1
+
+---
+name:            test_unsupported_imm_logical
+tracksRegLiveness: true
+body:             |
+  bb.0:
+    liveins: $w0
+    %0:gpr32 = COPY $w0
+    %1:gpr32 = MOVi32imm 13
+    %2:gpr32 = ANDWrr %0, %1
+    $w0 = COPY %2
+    RET_ReallyLR implicit $w0
+...
+# CHECK-LABEL: name: test_unsupported_imm_logical
+# CHECK: %2:gpr32 = ANDWrr %0, %1
