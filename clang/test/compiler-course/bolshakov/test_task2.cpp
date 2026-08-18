@@ -31,11 +31,13 @@ int* return_zero() {
   return 0;
 }
 
+// CHECK-NOT: warning:
 void test_nullptr_ok() {
   int *p = nullptr;
   func_with_pointer(nullptr);
 }
 
+// CHECK-NOT: warning:
 void test_non_pointer() {
   int x = 0;
   int y = 0;
